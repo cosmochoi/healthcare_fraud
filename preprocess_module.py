@@ -4,10 +4,10 @@
 
 def fraud_preprocessor(i_flag=0):
 	if i_flag == 0:
-		### Truong's script:
+		## Truong's script:
 		
-		## script to preprocess inpatient data
-		## Import ds packages
+		# script to preprocess inpatient data
+		# Import ds packages
 		import numpy as np
 		import pandas as pd 
 		import re
@@ -73,8 +73,8 @@ def fraud_preprocessor(i_flag=0):
 		op_df = op_df.astype(str)
 		op_df['ClaimStartDt'] = [datetime.strptime(date, '%Y-%m-%d') for date in op_df.ClaimStartDt]
 		op_df['ClaimEndDt'] = [datetime.strptime(date, '%Y-%m-%d') for date in op_df.ClaimEndDt]
-		op_df['Claimduration'] = op_df['ClaimEndDt'] - op_df['ClaimStartDt']
-		op_df['Claimduration'] = op_df['Claimduration'].map(lambda x: x.days)
+		op_df['ClaimDuration'] = op_df['ClaimEndDt'] - op_df['ClaimStartDt']
+		op_df['ClaimDuration'] = op_df['ClaimDuration'].map(lambda x: x.days)
 
 		# Make a column called month for the month of claim
 		op_df['ClaimMonth'] = op_df['ClaimStartDt'].map(lambda x: x.month)
@@ -127,6 +127,9 @@ def fraud_preprocessor(i_flag=0):
 		ip_op_df = pd.concat((ip_df, op_df), axis=0)
 		full_df = pd.merge(ip_op_df, bene_df, on = 'BeneID', how = 'left')
 		full_df  = pd.merge(full_df, label_train_df, how = 'inner', on = 'Provider')
+
+		return full_df
+		# return "foo"
 
 
 

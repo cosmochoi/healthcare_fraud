@@ -4,5 +4,5 @@
 from preprocess_module import fraud_preprocessor
 
 # call preprocessor 
-fraud_preprocessor(i_flag=0)
+full_df = fraud_preprocessor(i_flag=0)
 
