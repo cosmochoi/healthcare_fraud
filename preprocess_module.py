@@ -121,7 +121,7 @@ def fraud_preprocessor(i_flag=0):
 	op_df['PatientType'] = np.repeat('Outpatient', len(op_df))
 
 
-	if (i_flat==0):	
+	if (i_flag==0):	
 		### merge all cleaned datasets ###
 
 		# create column indicating patient type
