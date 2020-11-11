@@ -19,14 +19,12 @@ def feature_engineering(j_flag=0):
 		trainset = pd.merge(ip_op_train, benetrain_df, on = 'BeneID', how = 'left')
 		trainset = pd.merge(trainset, label_train_df, how = 'inner', on = 'Provider')
 		full_df = trainset
-		print("trainset: \n", trainset.head())
 
 	else:
 		iptrain_df, iptest_df, optrain_df, optest_df, benetrain_df, benetest_df, label_train_df, label_test_df = fraud_preprocessor(i_flag=1)
 		ip_op_test = pd.concat((iptest_df, optest_df), axis=0)
 		testset = pd.merge(ip_op_test, benetest_df, on = 'BeneID', how = 'left')
 		full_df = testset
-		print(testset.head())
 
 	# create physician count column 
 	phys_count = full_df.groupby(['AttendingPhysician', 'Provider'])['AttendingPhysician'].count()\
@@ -145,6 +143,5 @@ def feature_engineering(j_flag=0):
 	#add label column
 	features = pd.merge(train_features23, label_train_df, on='Provider')
 
-	return features.head()
+	return features
 
-feature_engineering(j_flag=2)
