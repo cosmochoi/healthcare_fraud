@@ -139,9 +139,15 @@ def feature_engineering(j_flag=0):
 
 	#import train label df
 	label_train_df = pd.read_csv('Train-1542865627584.csv')
+	
+	#add network degree column
+	networkdf = pd.read_csv('networkdf.csv')
+	
 
 	#add label column
 	features = pd.merge(train_features23, label_train_df, on='Provider')
+	features = pd.merge(features, networkdf, on='Provider')
+	
 
 	return features
 
