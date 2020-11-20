@@ -27,21 +27,30 @@ def feature_engineering(j_flag=0):
 		full_df = testset
 
 	# create physician count column 
-	phys_count = full_df.groupby(['AttendingPhysician', 'Provider'])['AttendingPhysician'].count()\
-	.reset_index(name='Phys_Count').groupby(['Provider'])['Phys_Count'].count().reset_index()
+	full_df=full_df.replace('None',np.nan)
+	phys_count = full_df.groupby(['Provider']).AttendingPhysician.nunique(dropna=True).reset_index(name='Phys_Count')
+	
 
 	# create patient count column 
-	patient_count = full_df.groupby(['Provider', 'BeneID'])['BeneID'].count().reset_index(name='Patient_Count')\
-	.groupby('Provider')['Patient_Count'].count().reset_index()
+	patient_count = full_df.groupby(['Provider']).BeneID.nunique(dropna=True).reset_index(name='Patient_Count')
 	train_features1 = pd.merge(phys_count, patient_count, on='Provider')
+	
+	# create normalized patient count
+	train_features1['NormPatientCount'] = train_features1.apply(lambda x: x['Patient_Count']/x['Phys_Count'],axis=1)
 
 	# create claim count column 
-	claim_count = full_df.groupby('Provider')['ClaimID'].count().reset_index(name='Claim_Count')
+	claim_count = full_df.groupby(['Provider']).ClaimID.nunique(dropna=True).reset_index(name='Claim_Count')
 	train_features2 = pd.merge(train_features1, claim_count, on='Provider')
+	
+	# create normalized claim count column
+	train_features2['NormClaimCount'] = train_features2.apply(lambda x: x['Claim_Count']/x['Phys_Count'],axis=1)
+
+	
 
 	##create service type column
-	prov_type = full_df.groupby(['Provider', 'PatientType'])['BeneID'].count().reset_index(name='').drop('', axis=1)
-
+	prov_type_full = full_df.groupby(['Provider', 'PatientType'])['ClaimID'].count().reset_index(name='noClaims')
+	prov_type = prov_type_full.drop('noClaims', axis=1)
+	
 	# create a dictionary provider by service type
 	lst_prov_type = list(zip(prov_type['Provider'], prov_type['PatientType']))
 
@@ -55,7 +64,7 @@ def feature_engineering(j_flag=0):
 	        prov_type_dict[i[0]] = 'Both_Service'
 	        
 
-	# creaete new column type of service by povider
+	# create new column type of service by povider
 	service_type = pd.DataFrame(prov_type_dict.keys(), prov_type_dict.values()).reset_index().\
 	rename(columns={'index':'Service_Type', 0:'Provider'})
 	# add Service column 
@@ -67,7 +76,17 @@ def feature_engineering(j_flag=0):
 	dummy_type = dummy_type.drop('Service_Type', axis=1)
 	# add Service column 
 	train_features3 = pd.merge(train_features3, dummy_type, on='Provider')
-
+	
+	# add service type counts
+	train_features3['InpatientCount']=np.zeros(train_features3.Provider.nunique())
+	train_features3['OutpatientCount']=np.zeros(train_features3.Provider.nunique())
+	for ind, provider in enumerate(train_features3.Provider):
+    		if prov_type_full.loc[(prov_type_full['Provider']==provider) & (prov_type_full['PatientType']=='Inpatient'),'noClaims'].any():
+        		train_features3.loc[ind,'InpatientCount'] = prov_type_full.loc[(prov_type_full['Provider']==provider) & 								(prov_type_full['PatientType']=='Inpatient'),'noClaims'].values[0]    
+    		if prov_type_full.loc[(prov_type_full['Provider']==provider) & (prov_type_full['PatientType']=='Outpatient'),'noClaims'].any():
+        		train_features3.loc[ind,'OutpatientCount'] = prov_type_full.loc[(prov_type_full['Provider']==provider) & 									(prov_type_full['PatientType']=='Outpatient'),'noClaims'].values[0]  
+	train_features3['NormInpatientCount'] = train_features3.apply(lambda x: x['InpatientCount']/x['Phys_Count'],axis=1)
+	train_features3['NormOutpatientCount'] = train_features3.apply(lambda x: x['OutpatientCount']/x['Phys_Count'],axis=1)
 	# Duplicate Claims 
 	full_df2 = full_df.copy()
 	full_df2['all_duplicates'] = full_df2.duplicated(subset = ['ClmDiagnosisCode_1', 'ClmDiagnosisCode_2',
@@ -132,7 +151,7 @@ def feature_engineering(j_flag=0):
 		'ChronicCond_Cancer', 'ChronicCond_ObstrPulmonary', 
 		'ChronicCond_Depression', 'ChronicCond_Diabetes',
 		'ChronicCond_IschemicHeart', 'ChronicCond_Osteoporasis',
-		'ChronicCond_rheumatoidarthritis', 'ChronicCond_stroke']].agg('sum').reset_index()
+		'ChronicCond_rheumatoidarthritis', 'ChronicCond_stroke']].agg('count').reset_index()
 
 
 	train_features23 = pd.merge(train_features13, conditions, on='Provider')
@@ -149,5 +168,5 @@ def feature_engineering(j_flag=0):
 	features = pd.merge(features, networkdf, on='Provider')
 	
 
-	return features
+	return train_features4
 
