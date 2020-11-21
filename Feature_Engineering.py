@@ -27,20 +27,27 @@ def feature_engineering(j_flag=0):
 		full_df = testset
 
 	# create physician count column 
-	phys_count = full_df.groupby(['AttendingPhysician', 'Provider'])['AttendingPhysician'].count()\
-	.reset_index(name='Phys_Count').groupby(['Provider'])['Phys_Count'].count().reset_index()
+	full_df.AttendingPhysician = full_df.AttendingPhysician.replace('None',np.nan)
+	phys_count = full_df.groupby(['Provider']).AttendingPhysician.nunique(dropna=True).reset_index(name='Phys_Count')
 
 	# create patient count column 
-	patient_count = full_df.groupby(['Provider', 'BeneID'])['BeneID'].count().reset_index(name='Patient_Count')\
-	.groupby('Provider')['Patient_Count'].count().reset_index()
+	patient_count = full_df.groupby(['Provider']).BeneID.nunique().reset_index(name='Patient_Count')
 	train_features1 = pd.merge(phys_count, patient_count, on='Provider')
+	
+	# create normalized patient count 
+	train_features1['Norm_Patient_Count'] = round(train_features1['Patient_Count']/train_features1['Phys_Count'],2)
 
 	# create claim count column 
-	claim_count = full_df.groupby('Provider')['ClaimID'].count().reset_index(name='Claim_Count')
+	claim_count = full_df.groupby(['Provider']).ClaimID.count().reset_index(name='Claim_Count')
 	train_features2 = pd.merge(train_features1, claim_count, on='Provider')
-
+	
+	# create normalized claim count
+	train_features2['Norm_Claim_Count'] = round(train_features2['Claim_Count']/train_features2['Phys_Count'],2)
+	
+	
 	##create service type column
-	prov_type = full_df.groupby(['Provider', 'PatientType'])['BeneID'].count().reset_index(name='').drop('', axis=1)
+	prov_full = full_df.groupby(['Provider', 'PatientType'])['ClaimID'].count().reset_index()
+	prov_type = full_df.groupby(['Provider', 'PatientType'])['ClaimID'].count().reset_index(name='').drop('', axis=1)
 
 	# create a dictionary provider by service type
 	lst_prov_type = list(zip(prov_type['Provider'], prov_type['PatientType']))
@@ -58,6 +65,7 @@ def feature_engineering(j_flag=0):
 	# creaete new column type of service by povider
 	service_type = pd.DataFrame(prov_type_dict.keys(), prov_type_dict.values()).reset_index().\
 	rename(columns={'index':'Service_Type', 0:'Provider'})
+	
 	# add Service column 
 	train_features3 = pd.merge(train_features2, service_type, on='Provider')
 
@@ -65,9 +73,30 @@ def feature_engineering(j_flag=0):
 	dummy = pd.get_dummies(service_type['Service_Type'])
 	dummy_type = pd.concat([service_type, dummy], axis=1)
 	dummy_type = dummy_type.drop('Service_Type', axis=1)
+	
 	# add Service column 
 	train_features3 = pd.merge(train_features3, dummy_type, on='Provider')
 
+	
+	# add Service counts
+	ip_count = np.zeros(5410)
+	op_count = np.zeros(5410)
+	provider = train_features3.Provider.unique()
+	service_count_df = pd.DataFrame({'Provider':provider,'Inpatient_Count': ip_count, 'Outpatient_Count': op_count})
+	for ind, provider in enumerate(service_count_df.Provider):
+    		if prov_full.loc[(prov_full['Provider']==provider) & (prov_full['PatientType']=='Inpatient'),'ClaimID'].any():
+        		service_count_df.loc[ind,'Inpatient_Count'] = prov_full.loc[(prov_full['Provider']==provider) & 									(prov_full['PatientType']=='Inpatient'),'ClaimID'].values[0]    
+    		if prov_full.loc[(prov_full['Provider']==provider) & (prov_full['PatientType']=='Outpatient'),'ClaimID'].any():
+        		service_count_df.loc[ind,'Outpatient_Count'] = prov_full.loc[(prov_full['Provider']==provider) & 										(prov_full['PatientType']=='Outpatient'),'ClaimID'].values[0]
+
+	train_features3 = pd.merge(train_features3, service_count_df, on='Provider')
+	
+	# add Normalized Service Counts
+	train_features3['Norm_Inpatient_Count'] = round(train_features3['Inpatient_Count']/train_features3['Claim_Count'],2)
+	train_features3['Norm_Outpatient_Count'] = round(train_features3['Outpatient_Count']/train_features3['Claim_Count'],2)
+	
+	
+	
 	# Duplicate Claims 
 	full_df2 = full_df.copy()
 	full_df2['all_duplicates'] = full_df2.duplicated(subset = ['ClmDiagnosisCode_1', 'ClmDiagnosisCode_2',
@@ -78,8 +107,8 @@ def feature_engineering(j_flag=0):
 		'ClmProcedureCode_5', 'ClmProcedureCode_6', 'ClmAdmitDiagnosisCode', 'BeneID', 'Provider'], keep=False)
 	#duplicate claims
 	Duplicates = full_df2[full_df2.all_duplicates == True].groupby('Provider')['BeneID'].count().reset_index(name='DuplicateClaims')
-
-	train_features4 = pd.merge(train_features3, Duplicates, on = 'Provider')
+	fillvalues = {'DuplicateClaims': 0} 
+	train_features4 = pd.merge(train_features3, Duplicates, on = 'Provider',how='left').fillna(value=fillvalues)
 
 	#duplicate claims percentage 
 	train_features4['Duplicate_Claims_Percent'] = pd.DataFrame(round((train_features4['DuplicateClaims']/train_features4['Claim_Count']), 2))
@@ -111,7 +140,7 @@ def feature_engineering(j_flag=0):
 	gender2 = full_df[['Provider', 'BeneID', 'Gender']].loc[full_df['Gender'] == 2].groupby('Provider')['BeneID'].nunique().to_frame().reset_index().rename(columns = {'BeneID': 'Gender2'})
 
 	#merge gender1 and gender2
-	gender = pd.merge(gender1, gender2, on='Provider')
+	gender = pd.merge(gender1, gender2, on='Provider',how='outer').fillna(0)
 	train_features9 = pd.merge(train_features7, gender, on='Provider')
 
 	#create race columns
@@ -121,9 +150,9 @@ def feature_engineering(j_flag=0):
 	race5 = full_df[['Provider', 'BeneID', 'Race']].loc[full_df['Race'] == 5].groupby('Provider')['BeneID'].nunique().to_frame().reset_index().rename(columns = {'BeneID': 'Race5'})
 
 	#merge race columns
-	race = pd.merge(race1, race2, on='Provider')
-	race = pd.merge(race, race3, on='Provider')
-	race = pd.merge(race, race5, on='Provider')
+	race = pd.merge(race1, race2, on='Provider',how='outer').fillna(0)
+	race = pd.merge(race, race3, on='Provider',how='outer').fillna(0)
+	race = pd.merge(race, race5, on='Provider',how='outer').fillna(0)
 
 	train_features13 = pd.merge(train_features9, race, on='Provider')
 
