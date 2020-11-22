@@ -111,6 +111,7 @@ def feature_engineering(j_flag=0):
 
 	#duplicate claims percentage 
 	train_features4['Duplicate_Claims_Percent'] = pd.DataFrame(round((train_features4['DuplicateClaims']/train_features4['Claim_Count']), 2))
+	
 	# Claim Duration 
 	Claim_dur = full_df2.groupby('Provider')['ClaimDuration'].agg('mean').reset_index(name='AvgClaimDuration')
 	train_features5 = pd.merge(train_features4, Claim_dur, on = 'Provider')
