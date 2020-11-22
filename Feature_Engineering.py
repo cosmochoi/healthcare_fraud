@@ -79,8 +79,8 @@ def feature_engineering(j_flag=0):
 
 	
 	# add Service counts
-	ip_count = np.zeros(5410)
-	op_count = np.zeros(5410)
+	ip_count = np.zeros(train_features3.shape[0])
+	op_count = np.zeros(train_features3.shape[0])
 	provider = train_features3.Provider.unique()
 	service_count_df = pd.DataFrame({'Provider':provider,'Inpatient_Count': ip_count, 'Outpatient_Count': op_count})
 	for ind, provider in enumerate(service_count_df.Provider):
@@ -90,7 +90,6 @@ def feature_engineering(j_flag=0):
         		service_count_df.loc[ind,'Outpatient_Count'] = prov_full.loc[(prov_full['Provider']==provider) & 										(prov_full['PatientType']=='Outpatient'),'ClaimID'].values[0]
 
 	train_features3 = pd.merge(train_features3, service_count_df, on='Provider')
-	
 	# add Normalized Service Counts
 	train_features3['Norm_Inpatient_Count'] = round(train_features3['Inpatient_Count']/train_features3['Claim_Count'],2)
 	train_features3['Norm_Outpatient_Count'] = round(train_features3['Outpatient_Count']/train_features3['Claim_Count'],2)
@@ -112,7 +111,6 @@ def feature_engineering(j_flag=0):
 
 	#duplicate claims percentage 
 	train_features4['Duplicate_Claims_Percent'] = pd.DataFrame(round((train_features4['DuplicateClaims']/train_features4['Claim_Count']), 2))
-
 	# Claim Duration 
 	Claim_dur = full_df2.groupby('Provider')['ClaimDuration'].agg('mean').reset_index(name='AvgClaimDuration')
 	train_features5 = pd.merge(train_features4, Claim_dur, on = 'Provider')
@@ -134,7 +132,6 @@ def feature_engineering(j_flag=0):
 	avg_age['Avg_Age'] = avg_age['Avg_Age'].astype(int)
 
 	train_features7 = pd.merge(train_features6, avg_age, on='Provider')
-
 	#create gender columns 
 	gender1 = full_df[['Provider', 'BeneID', 'Gender']].loc[full_df['Gender'] == 1].groupby('Provider')['BeneID'].nunique().to_frame().reset_index().rename(columns = {'BeneID': 'Gender1'})
 	gender2 = full_df[['Provider', 'BeneID', 'Gender']].loc[full_df['Gender'] == 2].groupby('Provider')['BeneID'].nunique().to_frame().reset_index().rename(columns = {'BeneID': 'Gender2'})
@@ -155,7 +152,6 @@ def feature_engineering(j_flag=0):
 	race = pd.merge(race, race5, on='Provider',how='outer').fillna(0)
 
 	train_features13 = pd.merge(train_features9, race, on='Provider')
-
 	# create each chronic condition count column
 	conditions = full_df.groupby('Provider')[['ChronicCond_Alzheimer', 'ChronicCond_KidneyDisease',
 		'ChronicCond_Cancer', 'ChronicCond_ObstrPulmonary', 
@@ -165,12 +161,14 @@ def feature_engineering(j_flag=0):
 
 
 	train_features23 = pd.merge(train_features13, conditions, on='Provider')
-
 	#import train label df
 	label_train_df = pd.read_csv('Train-1542865627584.csv')
 	
 	#add network degree column
 	networkdf = pd.read_csv('networkdf.csv')
+
+	if(j_flag==2):
+		return train_features23
 	
 
 	#add label column
