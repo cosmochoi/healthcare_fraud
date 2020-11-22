@@ -153,11 +153,17 @@ def feature_engineering(j_flag=0):
 
 	train_features13 = pd.merge(train_features9, race, on='Provider')
 	# create each chronic condition count column
-	conditions = full_df.groupby('Provider')[['ChronicCond_Alzheimer', 'ChronicCond_KidneyDisease',
+	chroniclist = ['ChronicCond_Alzheimer', 'ChronicCond_KidneyDisease',
 		'ChronicCond_Cancer', 'ChronicCond_ObstrPulmonary', 
 		'ChronicCond_Depression', 'ChronicCond_Diabetes',
 		'ChronicCond_IschemicHeart', 'ChronicCond_Osteoporasis',
-		'ChronicCond_rheumatoidarthritis', 'ChronicCond_stroke']].agg('sum').reset_index()
+		'ChronicCond_rheumatoidarthritis', 'ChronicCond_stroke']
+	conditions = train_features13[['Provider']]
+	for cond in chroniclist:
+    		df1 = full_df[['Provider', 'BeneID', cond]].loc[full_df[cond] == 1].groupby('Provider')['BeneID'].nunique().reset_index().rename(columns = 																	{'BeneID': cond + '_1'})
+    		df2 = full_df[['Provider', 'BeneID', cond]].loc[full_df[cond] == 2].groupby('Provider')['BeneID'].nunique().reset_index().rename(columns = 																	{'BeneID': cond + '_2'})
+    		conditions = pd.merge(conditions,df1,on='Provider',how='left').fillna(0)
+    		conditions = pd.merge(conditions,df2,on='Provider',how='left').fillna(0)
 
 
 	train_features23 = pd.merge(train_features13, conditions, on='Provider')
