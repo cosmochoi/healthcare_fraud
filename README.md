@@ -10,7 +10,7 @@ Given the importance of this issue, the team worked on a project to try to predi
 
 ## Built With
 
-Numpy - Numerical Computing Tool
-Pandas - Data Analysis and Manipulation Tool
-Scikit-learn - Machine Learning library
-Seaborn - Data Visualization
+- Numpy: Numerical Computing Tool
+- Pandas: Data Analysis and Manipulation Tool
+- Scikit-learn: Machine Learning library
+- Seaborn: Data Visualization
