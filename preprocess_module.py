@@ -129,7 +129,12 @@ def fraud_preprocessor(i_flag=0):
 
 		#combine all datasets
 		ip_op_df = pd.concat((ip_df, op_df), axis=0)
+<<<<<<< HEAD
 		full_df = pd.merge(ip_op_df, bene_df, on = 'BeneID', how = 'left')
+=======
+		full_df = pd.merge(ip_op_df, bene_df.drop_duplicates(), on = 'BeneID', how = 'left')
+		full_df  = pd.merge(full_df, label_train_df, how = 'inner', on = 'Provider')
+>>>>>>> a8fa6808789185a51f1572aebd1c52b190db3aa0
 
 		return full_df
 		

@@ -13,6 +13,8 @@ def feature_engineering(j_flag=0):
 
 	if(j_flag==1):
 		iptrain_df, iptest_df, optrain_df, optest_df, benetrain_df, benetest_df, label_train_df, label_test_df = fraud_preprocessor(i_flag=1)
+		optrain_df['ClaimStartDt'] = optrain_df['ClaimStartDt'].map(lambda x: x.to_pydatetime().date())
+		optrain_df['ClaimEndDt'] = optrain_df['ClaimEndDt'].map(lambda x: x.to_pydatetime().date())
 		ip_op_train = pd.concat((iptrain_df, optrain_df), axis=0)
 		trainset = pd.merge(ip_op_train, benetrain_df, on = 'BeneID', how = 'left')
 		trainset = pd.merge(trainset, label_train_df, how = 'inner', on = 'Provider')
@@ -169,8 +171,8 @@ def feature_engineering(j_flag=0):
 	#import train label df
 	label_train_df = pd.read_csv('Train-1542865627584.csv')
 	
-	#add network degree column
-	networkdf = pd.read_csv('networkdf.csv')
+	
+	
 
 	if(j_flag==2):
 		return train_features23
@@ -178,8 +180,28 @@ def feature_engineering(j_flag=0):
 
 	#add label column
 	features = pd.merge(train_features23, label_train_df, on='Provider')
+	
+	#add network degree column
+	networkdf = pd.read_csv('networkdfnew.csv')
 	features = pd.merge(features, networkdf, on='Provider')
 	
 
+	#add features for procedure code count for each procedure
+	featurenames = ['ClmProcedureCode_1']*5
+	featurenames = [featurenames[i-1].replace('1',str(i)) for i in range(1,6)]
+	newfeaturenames = ['Procedure_1_Count']*5
+	newfeaturenames = [newfeaturenames[i-1].replace('1',str(i)) for i in range(1,6)]
+	for i in range(5):
+    		dum_df = full_df[full_df[featurenames[i]]!='None'].groupby('Provider')[featurenames[i]].count().reset_index(name=newfeaturenames[i])
+    		features = pd.merge(features,dum_df,how='outer').fillna(0)
+	#add features for diagnosis code count for each diagnosis
+	featurenames = ['ClmDiagnosisCode_1']*9
+	featurenames = [featurenames[i-1].replace('1',str(i)) for i in range(1,10)]
+	newfeaturenames = ['Diagnosis_1_Count']*9
+	newfeaturenames = [newfeaturenames[i-1].replace('1',str(i)) for i in range(1,10)]
+	for i in range(9):
+    		dum_df = full_df[full_df[featurenames[i]]!='None'].groupby('Provider')[featurenames[i]].count().reset_index(name=newfeaturenames[i])
+    		features = pd.merge(features,dum_df,how='outer').fillna(0)
+	
 	return features
 
