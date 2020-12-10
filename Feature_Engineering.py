@@ -13,8 +13,8 @@ def feature_engineering(j_flag=0):
 
 	if(j_flag==1):
 		iptrain_df, iptest_df, optrain_df, optest_df, benetrain_df, benetest_df, label_train_df, label_test_df = fraud_preprocessor(i_flag=1)
-		optrain_df['ClaimStartDt'] = optrain_df['ClaimStartDt'].map(lambda x: x.to_pydatetime().date())
-		optrain_df['ClaimEndDt'] = optrain_df['ClaimEndDt'].map(lambda x: x.to_pydatetime().date())
+		optrain_df['ClaimStartDt'] = optrain_df['ClaimStartDt'].map(lambda x: x.day)
+		optrain_df['ClaimEndDt'] = optrain_df['ClaimEndDt'].map(lambda x: x.day)
 		ip_op_train = pd.concat((iptrain_df, optrain_df), axis=0)
 		trainset = pd.merge(ip_op_train, benetrain_df, on = 'BeneID', how = 'left')
 		trainset = pd.merge(trainset, label_train_df, how = 'inner', on = 'Provider')
