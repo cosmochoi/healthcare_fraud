@@ -12,7 +12,7 @@ raw data =====> [preprocess_module.py] =====> full_df (containing all features f
 
 - businessscoring.py: function to calculate a business metric used to evaluate machine learning models
 
-- In the machine learning notebooks "ML_.* ", different machine learning models were tuned. The most comprehensive one is "ML_models_FINAL.ipynb". For reference, we kept all the previous ones, which served different purposed as we moved forward in our project. 
+- In the machine learning notebooks "ML_.* ", different machine learning models were tuned. The most comprehensive one is "ML_models_FINAL.ipynb". For reference, we kept all the previous ones, which served different purposes as we moved forward in our project. 
 
 
 
